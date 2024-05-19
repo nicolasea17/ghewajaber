@@ -25,19 +25,15 @@ scaler = joblib.load('scaler.joblib')
 
 # Function to preprocess the data
 def preprocess(data):
-    if 'inspection_date' not in data.columns or 'arrival_date' not in data.columns:
-        st.error("The uploaded file must contain 'inspection_date' and 'arrival_date' columns.")
+    required_columns = ['inspection_date', 'arrival_date', 'custom_fees', 'country_of_origin', 'container_type']
+    missing_columns = [col for col in required_columns if col not in data.columns]
+    
+    if missing_columns:
+        st.error(f"The uploaded file is missing the following required columns: {', '.join(missing_columns)}")
         return None
-
+    
     # Drop unnecessary columns early
-    if 'container number' in data.columns:
-        data = data.drop(columns=['container number'])
-    if 'x' in data.columns:
-        data = data.drop(columns=['x'])
-    if 'color code' in data.columns:
-        data = data.drop(columns=['color code'])
-    if 'container' in data.columns:
-        data = data.drop(columns=['container'])
+    data = data.drop(columns=['container number', 'x', 'color code', 'container'], errors='ignore')
 
     data['inspection_date'] = pd.to_datetime(data['inspection_date'], dayfirst=True, errors='coerce')
     data['arrival_date'] = pd.to_datetime(data['arrival_date'], dayfirst=True, errors='coerce')
