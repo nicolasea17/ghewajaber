@@ -13,7 +13,7 @@ def download_model(url, model_path):
             f.write(response.content)
 
 # Google Drive link
-model_url = 'YOUR_GOOGLE_DRIVE_LINK'  # Replace with your shareable link
+model_url = 'https://drive.google.com/uc?export=download&id=1xogKOHuSTUrRaX8Kv-FmLAiYH-AabVPP'
 model_path = 'random_forest_model.joblib'
 
 # Download the model
@@ -23,7 +23,7 @@ download_model(model_url, model_path)
 model = joblib.load(model_path)
 scaler = joblib.load('scaler.joblib')
 
-# The rest of your Streamlit app code...
+# Function to preprocess the data
 def preprocess(data):
     data['inspection_date'] = pd.to_datetime(data['inspection_date'], dayfirst=True, errors='coerce')
     data['arrival_date'] = pd.to_datetime(data['arrival_date'], dayfirst=True, errors='coerce')
