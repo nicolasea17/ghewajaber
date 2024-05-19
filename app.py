@@ -107,6 +107,7 @@ def preprocess(data, expected_features):
         if feature not in X_delay.columns:
             X_delay[feature] = 0
 
+    # Reorder columns to match expected features
     X_delay = X_delay[expected_features]
 
     return X_delay, y_delay
