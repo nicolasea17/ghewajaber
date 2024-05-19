@@ -99,28 +99,35 @@ if uploaded_file is not None:
         st.write("Here is a preview of your data:")
         st.write(data.head())
 
-        # Ensure the necessary columns are of the correct type
-        data['inspection_date'] = pd.to_datetime(data['inspection_date'], dayfirst=True, errors='coerce')
-        data['arrival_date'] = pd.to_datetime(data['arrival_date'], dayfirst=True, errors='coerce')
-
-        X_delay = preprocess(data)
+        # Check for necessary columns
+        required_columns = ['inspection_date', 'arrival_date']
+        missing_columns = [col for col in required_columns if col not in data.columns]
         
-        if X_delay is not None:
-            X_delay_scaled = scaler.transform(X_delay)
-            predictions = model.predict(X_delay_scaled)
+        if missing_columns:
+            st.error(f"The uploaded file is missing the following required columns: {', '.join(missing_columns)}")
+        else:
+            # Ensure the necessary columns are of the correct type
+            data['inspection_date'] = pd.to_datetime(data['inspection_date'], dayfirst=True, errors='coerce')
+            data['arrival_date'] = pd.to_datetime(data['arrival_date'], dayfirst=True, errors='coerce')
 
-            data['predicted_delay_days'] = predictions
+            X_delay = preprocess(data)
+            
+            if X_delay is not None:
+                X_delay_scaled = scaler.transform(X_delay)
+                predictions = model.predict(X_delay_scaled)
 
-            st.write("Here are the predictions for your data:")
-            st.write(data)
+                data['predicted_delay_days'] = predictions
 
-            data.to_excel('predicted_imports.xlsx', index=False)
-            st.download_button(
-                label="Download predictions as Excel",
-                data=data.to_excel(index=False),
-                file_name='predicted_imports.xlsx',
-                mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            )
+                st.write("Here are the predictions for your data:")
+                st.write(data)
+
+                data.to_excel('predicted_imports.xlsx', index=False)
+                st.download_button(
+                    label="Download predictions as Excel",
+                    data=data.to_excel(index=False),
+                    file_name='predicted_imports.xlsx',
+                    mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                )
     except Exception as e:
         st.error(f"An error occurred: {e}")
 else:
