@@ -4,6 +4,7 @@ import numpy as np
 import joblib
 import requests
 import os
+import matplotlib.pyplot as plt
 
 # Function to download the model from Google Drive
 def download_model(url, model_path):
@@ -112,21 +113,13 @@ st.write("""
 This application allows you to upload your import data, preprocess it, and predict the delay days using a pre-trained model.
 """)
 
-# Option to upload new data or use the latest stored data
-data_source = st.radio("Choose the data source:", ('Upload new data', 'Use latest stored data'))
+uploaded_file = st.file_uploader("Choose an Excel file with your import data", type=['xlsx'])
 
-if data_source == 'Upload new data':
-    uploaded_file = st.file_uploader("Choose an Excel file with your import data", type=['xlsx'])
-    if uploaded_file is not None:
-        data = pd.read_excel(uploaded_file, dtype=str)
-else:
-    # Use the latest stored data from the repository
-    data_url = 'https://github.com/yourusername/yourrepository/raw/main/all%20imports.xlsx'
-    data = pd.read_excel(data_url, dtype=str)
-    st.write("Using the latest stored data from the repository.")
-
-if data is not None:
+if uploaded_file is not None:
     try:
+        # Load the data
+        data = pd.read_excel(uploaded_file, dtype=str)
+
         # Standardize column names immediately after reading the data
         data = data.rename(columns=lambda x: x.strip().lower().replace(' ', '_'))
 
@@ -160,6 +153,12 @@ if data is not None:
                 # Display statistics
                 st.write("Statistics of predicted delay days:")
                 st.write(data['predicted_delay_days'].describe())
+
+                # Visualize the predictions
+                st.write("Histogram of predicted delay days:")
+                fig, ax = plt.subplots()
+                data['predicted_delay_days'].hist(bins=20, ax=ax)
+                st.pyplot(fig)
 
                 # Prepare file for download
                 output_file = 'data_with_predictions.xlsx'
