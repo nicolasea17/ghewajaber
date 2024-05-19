@@ -157,7 +157,10 @@ if uploaded_file is not None:
                 # Visualize the predictions
                 st.write("Histogram of predicted delay days:")
                 fig, ax = plt.subplots()
-                data['predicted_delay_days'].hist(bins=20, ax=ax)
+                ax.hist(data['predicted_delay_days'], bins=20, edgecolor='black')
+                ax.set_title('Distribution of Predicted Delay Days')
+                ax.set_xlabel('Delay Days')
+                ax.set_ylabel('Frequency')
                 st.pyplot(fig)
 
                 # Prepare file for download
