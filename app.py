@@ -24,7 +24,7 @@ model = joblib.load(model_path)
 scaler = joblib.load('scaler.joblib')
 
 # Function to preprocess the data
-def preprocess(data):
+def preprocess(data, expected_features):
     # Rename specified columns
     data = data.rename(columns={
         'container type': 'container_type',
@@ -102,6 +102,13 @@ def preprocess(data):
 
     X_delay = X_delay.drop(['arrival_weekday', 'arrival_month'], axis=1)
 
+    # Ensure all expected features are present in X_delay
+    for feature in expected_features:
+        if feature not in X_delay.columns:
+            X_delay[feature] = 0
+
+    X_delay = X_delay[expected_features]
+
     return X_delay, y_delay
 
 # Streamlit interface
@@ -132,18 +139,14 @@ if uploaded_file is not None:
         if missing_columns:
             st.error(f"The uploaded file is missing the following required columns: {', '.join(missing_columns)}")
         else:
+            # Get the expected feature names from the scaler
+            expected_features = scaler.get_feature_names_out()
+
             # Preprocess the data
-            X_delay, y_delay = preprocess(data)
+            X_delay, y_delay = preprocess(data, expected_features)
 
             if X_delay is not None:
                 X_delay_scaled = scaler.transform(X_delay)
-
-                # Ensure the columns in X_delay match those seen by the model
-                model_columns = scaler.get_feature_names_out()
-                for col in model_columns:
-                    if col not in X_delay.columns:
-                        X_delay[col] = 0
-                X_delay = X_delay[model_columns]
 
                 predictions = model.predict(X_delay_scaled)
 
