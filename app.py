@@ -106,6 +106,15 @@ def preprocess(data, expected_features):
 
     return X_delay, data
 
+# Streamlit interface
+st.title('Import Delay Prediction')
+
+st.write("""
+This application allows you to upload your import data, preprocess it, and predict the delay days using a pre-trained model.
+""")
+
+uploaded_file = st.file_uploader("Choose an Excel file with your import data", type=['xlsx'])
+
 if uploaded_file is not None:
     try:
         # Load the data
