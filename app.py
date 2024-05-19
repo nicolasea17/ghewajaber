@@ -187,35 +187,31 @@ if uploaded_file is not None:
 
             st.write("Step: Preprocessing the data")
             # Preprocess the data
-            X_delay, y_delay = preprocess(data, expected_features)
+            X_delay, data2 = preprocess(data, expected_features)
 
             if X_delay is not None:
                 st.write("Step: Scaling the data")
                 X_delay_scaled = scaler.transform(X_delay)
-                st.write(f"Scaled data shape: ", X_delay_scaled.shape)
-                st.write(X_delay_scaled[:5])  # Display the first 5 rows of scaled data
+                st.write(f"Scaled data shape: {X_delay_scaled.shape}")
 
                 st.write("Step: Making predictions")
                 predictions = model.predict(X_delay_scaled)
-                st.write(f"Predictions made: {predictions[:5]}")  # Display the first 5 predictions
+                st.write(f"Predictions made: {predictions[:5]}")
 
                 st.write("Step: Adding predictions to the dataframe")
-                data['predicted_delay_days'] = predictions
+                data2['predicted_delay_days'] = predictions
 
-                st.write("Step: Preparing the output file")
-                st.write(data.head())
+                st.write("Here is a preview of your data with predictions:")
+                st.write(data2.head())
 
-                # Ensure only the necessary columns are included in the output file
-                output_columns = data.columns.tolist()
-                data.to_excel('predicted_imports.xlsx', index=False, columns=output_columns)
-                st.download_button(
-                    label="Download predictions as Excel",
-                    data=data.to_excel(index=False, columns=output_columns),
-                    file_name='predicted_imports.xlsx',
-                    mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-                )
+                # Optionally, download the data with predictions
+                st.write("Step: Preparing file for download")
+                output_file = 'data_with_predictions.xlsx'
+                data2.to_excel(output_file, index=False)
+
+                with open(output_file, 'rb') as f:
+                    st.download_button('Download Predictions', f, file_name=output_file)
 
     except Exception as e:
         st.error(f"An error occurred: {e}")
-else:
-    st.info("Please upload an Excel file to proceed.")
+
