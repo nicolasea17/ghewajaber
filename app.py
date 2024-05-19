@@ -29,6 +29,9 @@ def preprocess(data):
         st.error("The uploaded file must contain 'inspection_date' and 'arrival_date' columns.")
         return None
     
+    # Drop unnecessary columns early
+    data = data.drop(columns=['container number', 'x', 'color code', 'container'], errors='ignore')
+
     data['inspection_date'] = pd.to_datetime(data['inspection_date'], dayfirst=True, errors='coerce')
     data['arrival_date'] = pd.to_datetime(data['arrival_date'], dayfirst=True, errors='coerce')
 
