@@ -46,7 +46,7 @@ def preprocess(data):
         if pd.isna(arrival_date):
             return np.nan
         days_to_add = np.random.randint(2, 21)
-        return arrival_date + pd.DateOffset(days=days_to_add)
+        return arrival_date + pd.DateOffset(days_to_add)
 
     # Apply the function to fill null 'inspection date'
     data['inspection_date'] = data.apply(
@@ -115,40 +115,47 @@ uploaded_file = st.file_uploader("Choose an Excel file with your import data", t
 
 if uploaded_file is not None:
     try:
-        # Load the data
-        data = pd.read_excel(uploaded_file)
+        # Load the data, ensuring all columns are read as strings initially
+        data = pd.read_excel(uploaded_file, dtype=str)
         st.write("Data Uploaded Successfully!")
 
         st.write("Here is a preview of your data:")
         st.write(data.head())
 
-        # Preprocess the data
-        X_delay, y_delay = preprocess(data)
+        # Check for necessary columns
+        required_columns = ['inspection_date', 'arrival_date', 'custom_fees', 'country_of_origin', 'container_type']
+        missing_columns = [col for col in required_columns if col not in data.columns]
+        
+        if missing_columns:
+            st.error(f"The uploaded file is missing the following required columns: {', '.join(missing_columns)}")
+        else:
+            # Preprocess the data
+            X_delay, y_delay = preprocess(data)
 
-        if X_delay is not None:
-            X_delay_scaled = scaler.transform(X_delay)
+            if X_delay is not None:
+                X_delay_scaled = scaler.transform(X_delay)
 
-            # Ensure the columns in X_delay match those seen by the model
-            model_columns = scaler.get_feature_names_out()
-            for col in model_columns:
-                if col not in X_delay.columns:
-                    X_delay[col] = 0
-            X_delay = X_delay[model_columns]
+                # Ensure the columns in X_delay match those seen by the model
+                model_columns = scaler.get_feature_names_out()
+                for col in model_columns:
+                    if col not in X_delay.columns:
+                        X_delay[col] = 0
+                X_delay = X_delay[model_columns]
 
-            predictions = model.predict(X_delay_scaled)
+                predictions = model.predict(X_delay_scaled)
 
-            data['predicted_delay_days'] = predictions
+                data['predicted_delay_days'] = predictions
 
-            st.write("Here are the predictions for your data:")
-            st.write(data)
+                st.write("Here are the predictions for your data:")
+                st.write(data)
 
-            data.to_excel('predicted_imports.xlsx', index=False)
-            st.download_button(
-                label="Download predictions as Excel",
-                data=data.to_excel(index=False),
-                file_name='predicted_imports.xlsx',
-                mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            )
+                data.to_excel('predicted_imports.xlsx', index=False)
+                st.download_button(
+                    label="Download predictions as Excel",
+                    data=data.to_excel(index=False),
+                    file_name='predicted_imports.xlsx',
+                    mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                )
     except Exception as e:
         st.error(f"An error occurred: {e}")
 else:
