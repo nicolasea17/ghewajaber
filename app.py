@@ -25,6 +25,10 @@ scaler = joblib.load('scaler.joblib')
 
 # Function to preprocess the data
 def preprocess(data):
+    if 'inspection_date' not in data.columns or 'arrival_date' not in data.columns:
+        st.error("The uploaded file must contain 'inspection_date' and 'arrival_date' columns.")
+        return None
+    
     data['inspection_date'] = pd.to_datetime(data['inspection_date'], dayfirst=True, errors='coerce')
     data['arrival_date'] = pd.to_datetime(data['arrival_date'], dayfirst=True, errors='coerce')
 
@@ -84,23 +88,28 @@ if uploaded_file is not None:
     try:
         data = pd.read_excel(uploaded_file)
         st.write("Data Uploaded Successfully!")
-        
+
+        st.write("Here is a preview of your data:")
+        st.write(data.head())
+
         X_delay = preprocess(data)
-        X_delay_scaled = scaler.transform(X_delay)
-        predictions = model.predict(X_delay_scaled)
+        
+        if X_delay is not None:
+            X_delay_scaled = scaler.transform(X_delay)
+            predictions = model.predict(X_delay_scaled)
 
-        data['predicted_delay_days'] = predictions
+            data['predicted_delay_days'] = predictions
 
-        st.write("Here are the predictions for your data:")
-        st.write(data)
+            st.write("Here are the predictions for your data:")
+            st.write(data)
 
-        data.to_excel('predicted_imports.xlsx', index=False)
-        st.download_button(
-            label="Download predictions as Excel",
-            data=data.to_excel(index=False),
-            file_name='predicted_imports.xlsx',
-            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        )
+            data.to_excel('predicted_imports.xlsx', index=False)
+            st.download_button(
+                label="Download predictions as Excel",
+                data=data.to_excel(index=False),
+                file_name='predicted_imports.xlsx',
+                mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
     except Exception as e:
         st.error(f"An error occurred: {e}")
 else:
