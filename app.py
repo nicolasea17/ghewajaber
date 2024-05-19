@@ -1,89 +1,92 @@
 import streamlit as st
 import pandas as pd
-import joblib
-import logging
-import sklearn
 import numpy as np
+import joblib
 
-# Set up logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# Load the model and scaler
+model = joblib.load('random_forest_model.joblib')
+scaler = joblib.load('scaler.joblib')
 
-# Initialize login status in session state
-if 'login_successful' not in st.session_state:
-    st.session_state.login_successful = False
+# Function to preprocess the data
+def preprocess(data):
+    data['inspection_date'] = pd.to_datetime(data['inspection_date'], dayfirst=True, errors='coerce')
+    data['arrival_date'] = pd.to_datetime(data['arrival_date'], dayfirst=True, errors='coerce')
 
-# Login Page
-def login_page():
-    st.title("Welcome to Incoding's Page")
-    col1, col2 = st.columns(2)
+    def random_date(arrival_date):
+        if pd.isna(arrival_date):
+            return np.nan
+        days_to_add = np.random.randint(2, 21)
+        return arrival_date + pd.DateOffset(days=days_to_add)
 
-    with col1:
-        st.image('https://github.com/nicolasea17/Capstone_Project/blob/main/Incoding%20Picture.png?raw=true', width=250)
+    data['inspection_date'] = data.apply(
+        lambda row: random_date(row['arrival_date']) if pd.isna(row['inspection_date']) else row['inspection_date'],
+        axis=1
+    )
 
-    with col2:
-        st.image('https://github.com/nicolasea17/Capstone_Project/blob/main/OSB%20Picture.png?raw=true', width=250)
+    data['custom_fees'] = data['custom_fees'].replace('[^\d.]', '', regex=True)
+    data['custom_fees'] = pd.to_numeric(data['custom_fees'], errors='coerce')
 
-    username = st.text_input('Username')
-    password = st.text_input('Password', type='password')
-
-    if st.button('Sign In'):
-        if username == 'admin' and password == '1234':
-            st.session_state.login_successful = True
-            st.experimental_rerun()
+    def determine_exchange_rate(arrival_date):
+        if pd.Timestamp('2018-01-01') <= arrival_date < pd.Timestamp('2022-12-01'):
+            return 1500
+        elif pd.Timestamp('2022-12-01') <= arrival_date < pd.Timestamp('2023-05-01'):
+            return 15000
+        elif pd.Timestamp('2023-05-01') <= arrival_date < pd.Timestamp('2024-01-01'):
+            return 86000
         else:
-            st.error('Invalid credentials')
+            return None
 
-# Load model and label encoders safely
-def load_resources():
+    data['exchange_rate'] = data['arrival_date'].apply(determine_exchange_rate)
+    data['custom_fees_usd'] = data.apply(lambda x: x['custom_fees'] / x['exchange_rate'] if pd.notna(x['exchange_rate']) else np.nan, axis=1)
+
+    data['delay_days'] = (data['inspection_date'] - data['arrival_date']).dt.days
+    data = data[data['delay_days'] >= 0]
+
+    data['arrival_weekday'] = data['arrival_date'].dt.weekday
+    data['arrival_month'] = data['arrival_date'].dt.month
+    data['arrival_weekday_sin'] = np.sin(2 * np.pi * data['arrival_weekday'] / 7)
+    data['arrival_weekday_cos'] = np.cos(2 * np.pi * data['arrival_weekday'] / 7)
+    data['arrival_month_sin'] = np.sin(2 * np.pi * data['arrival_month'] / 12)
+    data['arrival_month_cos'] = np.cos(2 * np.pi * data['arrival_month'] / 12)
+
+    X_delay = data[['arrival_weekday_sin', 'arrival_weekday_cos', 'arrival_month_sin', 'arrival_month_cos', 'country_of_origin', 'container_type']]
+    encoded_features = pd.get_dummies(X_delay[['container_type', 'country_of_origin']])
+    X_delay = pd.concat([X_delay.drop(['container_type', 'country_of_origin'], axis=1), encoded_features], axis=1)
+
+    return X_delay
+
+# Streamlit interface
+st.title('Import Delay Prediction')
+
+st.write("""
+This application allows you to upload your import data, preprocess it, and predict the delay days using a pre-trained model.
+""")
+
+uploaded_file = st.file_uploader("Choose an Excel file with your import data", type=['xlsx'])
+
+if uploaded_file is not None:
     try:
-        model = joblib.load('random_forest_hourly_rate_model.joblib')
-        encoders = joblib.load('label_encoders.joblib')
-        return model, encoders
+        data = pd.read_excel(uploaded_file)
+        st.write("Data Uploaded Successfully!")
+        
+        X_delay = preprocess(data)
+        X_delay_scaled = scaler.transform(X_delay)
+        predictions = model.predict(X_delay_scaled)
+
+        data['predicted_delay_days'] = predictions
+
+        st.write("Here are the predictions for your data:")
+        st.write(data)
+
+        data.to_excel('predicted_imports.xlsx', index=False)
+        st.download_button(
+            label="Download predictions as Excel",
+            data=data.to_excel(index=False),
+            file_name='predicted_imports.xlsx',
+            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
     except Exception as e:
-        st.error(f"Failed to load resources. Error: {e}")
-        return None, None
-
-# Prediction Page
-def prediction_page():
-    logging.info("Prediction page called.")
-    st.markdown("<h1 style='text-align: center; font-size: 24px;'>Website Development Hourly Rate Prediction</h1>", unsafe_allow_html=True)
-    col_image = st.columns([1, 2, 1])
-
-    with col_image[1]:
-        st.image('https://github.com/nicolasea17/Capstone_Project/blob/main/MachineLearning_PriceElasticity.png?raw=true', width=300)
-
-    if model and label_encoders:
-        with st.form("prediction_form"):
-            st.header("Enter the details:")
-            job_type = st.selectbox('Select Job Type', label_encoders['Job Type'].classes_)
-            ex_level_demand = st.selectbox('Select Experience Level Demand', label_encoders['EX_level_demand'].classes_)
-            industry = st.selectbox('Select Industry', label_encoders['Industry'].classes_)
-            technical_tool = st.selectbox('Select Technical Tool', label_encoders['Technical_Tool'].classes_)
-            competitive_level = st.selectbox('Select Competitive Level', label_encoders['Competitive Level'].classes_)
-            client_country = st.selectbox('Select Client Country', label_encoders['Client_Country'].classes_)
-            submitted = st.form_submit_button("Predict Hourly Rate")
-
-        if submitted:
-            # Encode the inputs using the loaded label encoders
-            input_data = pd.DataFrame([[
-                label_encoders['Job Type'].transform([job_type])[0],
-                label_encoders['EX_level_demand'].transform([ex_level_demand])[0],
-                label_encoders['Industry'].transform([industry])[0],
-                label_encoders['Technical_Tool'].transform([technical_tool])[0],
-                label_encoders['Competitive Level'].transform([competitive_level])[0],
-                label_encoders['Client_Country'].transform([client_country])[0]
-            ]], columns=['Job Type', 'EX_level_demand', 'Industry', 'Technical_Tool', 'Competitive Level', 'Client_Country'])
-
-            try:
-                # Predict
-                prediction = model.predict(input_data)
-                st.write(f"The predicted hourly rate is ${prediction[0]:.2f}")
-            except Exception as e:
-                st.error(f"An error occurred during prediction. Error: {e}")
-
-# Main application logic
-if not st.session_state.login_successful:
-    login_page()
+        st.error(f"An error occurred: {e}")
 else:
-    model, label_encoders = load_resources()
-    prediction_page()
+    st.info("Please upload an Excel file to proceed.")
+
