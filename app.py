@@ -102,7 +102,7 @@ def preprocess(data, expected_features):
     data['arrival_month'] = data['arrival_date'].dt.month
     st.write(data[['arrival_weekday', 'arrival_month']].head())
 
-    data2 = data[['arrival_weekday', 'arrival_month', 'country_of_origin', 'container_type', 'delay_days']]
+    data2 = data[['arrival_weekday', 'arrival_month', 'country_of_origin', 'container_type', 'delay_days']].copy()
     st.write("Data2 shape: ", data2.shape)
 
     st.write("Step: Dropping rows where any cell in that row is NA")
