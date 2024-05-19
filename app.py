@@ -192,7 +192,7 @@ if uploaded_file is not None:
             if X_delay is not None:
                 st.write("Step: Scaling the data")
                 X_delay_scaled = scaler.transform(X_delay)
-                                st.write("Scaled data shape: ", X_delay_scaled.shape)
+                st.write(f"Scaled data shape: ", X_delay_scaled.shape)
                 st.write(X_delay_scaled[:5])  # Display the first 5 rows of scaled data
 
                 st.write("Step: Making predictions")
@@ -219,4 +219,3 @@ if uploaded_file is not None:
         st.error(f"An error occurred: {e}")
 else:
     st.info("Please upload an Excel file to proceed.")
-
