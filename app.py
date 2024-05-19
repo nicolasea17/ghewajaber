@@ -5,7 +5,6 @@ import joblib
 import requests
 import os
 import matplotlib.pyplot as plt
-import seaborn as sns
 
 # Function to download the model from Google Drive
 def download_model(url, model_path):
@@ -154,15 +153,6 @@ if uploaded_file is not None:
                 # Display statistics
                 st.write("Statistics of predicted delay days:")
                 st.write(data['predicted_delay_days'].describe())
-
-                # Visualize the predictions
-                st.write("Density plot of predicted delay days:")
-                fig, ax = plt.subplots()
-                sns.histplot(data['predicted_delay_days'], kde=True, ax=ax)
-                ax.set_title('Distribution of Predicted Delay Days')
-                ax.set_xlabel('Delay Days')
-                ax.set_ylabel('Density')
-                st.pyplot(fig)
 
                 # Prepare file for download
                 output_file = 'data_with_predictions.xlsx'
