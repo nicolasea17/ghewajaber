@@ -25,9 +25,6 @@ scaler = joblib.load('scaler.joblib')
 
 # Function to preprocess the data
 def preprocess(data):
-    # Remove specified columns
-    data = data.drop(columns=['container number', 'x', 'color code', 'container'], errors='ignore')
-
     # Rename specified columns
     data = data.rename(columns={
         'container type': 'container_type',
@@ -36,6 +33,9 @@ def preprocess(data):
         'country of origin': 'country_of_origin',
         'arrival date': 'arrival_date',
     })
+
+    # Remove specified columns
+    data = data.drop(columns=['container number', 'x', 'color code', 'container'], errors='ignore')
 
     # Convert date columns to datetime format with error handling
     data['inspection_date'] = pd.to_datetime(data['inspection_date'], dayfirst=True, errors='coerce')
@@ -115,9 +115,12 @@ uploaded_file = st.file_uploader("Choose an Excel file with your import data", t
 
 if uploaded_file is not None:
     try:
-        # Load the data, ensuring all columns are read as strings initially
+        # Load the data
         data = pd.read_excel(uploaded_file, dtype=str)
         st.write("Data Uploaded Successfully!")
+
+        # Standardize column names immediately after reading the data
+        data = data.rename(columns=lambda x: x.strip().lower().replace(' ', '_'))
 
         st.write("Here is a preview of your data:")
         st.write(data.head())
