@@ -41,14 +41,14 @@ def preprocess(data, expected_features):
     data['inspection_date'] = pd.to_datetime(data['inspection_date'], dayfirst=True, errors='coerce')
     data['arrival_date'] = pd.to_datetime(data['arrival_date'], dayfirst=True, errors='coerce')
 
-    # Function to generate a random date between 2 to 20 days after 'arrival date'
+    # Function to generate a random date between 2 to 20 days after 'arrival_date'
     def random_date(arrival_date):
         if pd.isna(arrival_date):
             return np.nan
         days_to_add = np.random.randint(2, 21)
-        return arrival_date + pd.DateOffset(days_to_add)
+        return arrival_date + pd.DateOffset(days=days_to_add)
 
-    # Apply the function to fill null 'inspection date'
+    # Apply the function to fill null 'inspection_date'
     data['inspection_date'] = data.apply(
         lambda row: random_date(row['arrival_date']) if pd.isna(row['inspection_date']) else row['inspection_date'],
         axis=1
@@ -151,15 +151,18 @@ if uploaded_file is not None:
 
                 predictions = model.predict(X_delay_scaled)
 
+                # Ensure the columns in X_delay match those seen by the model
                 data['predicted_delay_days'] = predictions
 
                 st.write("Here are the predictions for your data:")
                 st.write(data)
 
-                data.to_excel('predicted_imports.xlsx', index=False)
+                # Ensure only the necessary columns are included in the output file
+                output_columns = data.columns.tolist() + ['predicted_delay_days']
+                data.to_excel('predicted_imports.xlsx', index=False, columns=output_columns)
                 st.download_button(
                     label="Download predictions as Excel",
-                    data=data.to_excel(index=False),
+                    data=data.to_excel(index=False, columns=output_columns),
                     file_name='predicted_imports.xlsx',
                     mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
                 )
