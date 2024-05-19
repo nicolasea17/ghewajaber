@@ -82,7 +82,7 @@ def preprocess(data):
     data['arrival_month_cos'] = np.cos(2 * np.pi * data['arrival_month'] / 12)
 
     X_delay = data[['arrival_weekday_sin', 'arrival_weekday_cos', 'arrival_month_sin', 'arrival_month_cos', 'country of origin', 'container type']]
-    encoded_features = pd.get_dummies(X_delay[['container type', 'country of origin']])
+    encoded_features = pd.get_dummies(X_delay[['container type', 'country of origin']], prefix=['container_type', 'country_of_origin'])
     X_delay = pd.concat([X_delay.drop(['container type', 'country of origin'], axis=1), encoded_features], axis=1)
 
     return X_delay
@@ -120,6 +120,14 @@ if uploaded_file is not None:
             
             if X_delay is not None:
                 X_delay_scaled = scaler.transform(X_delay)
+
+                # Ensure the columns in X_delay match those seen by the model
+                model_columns = scaler.get_feature_names_out()
+                for col in model_columns:
+                    if col not in X_delay.columns:
+                        X_delay[col] = 0
+                X_delay = X_delay[model_columns]
+
                 predictions = model.predict(X_delay_scaled)
 
                 data['predicted_delay_days'] = predictions
