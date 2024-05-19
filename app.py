@@ -25,7 +25,7 @@ scaler = joblib.load('scaler.joblib')
 
 # Function to preprocess the data
 def preprocess(data):
-    required_columns = ['inspection_date', 'arrival_date', 'custom_fees', 'country_of_origin', 'container_type']
+    required_columns = ['inspection date', 'arrival date', 'custom fees', 'country of origin', 'container type']
     missing_columns = [col for col in required_columns if col not in data.columns]
     
     if missing_columns:
@@ -35,8 +35,14 @@ def preprocess(data):
     # Drop unnecessary columns early
     data = data.drop(columns=['container number', 'x', 'color code', 'container'], errors='ignore')
 
-    data['inspection_date'] = pd.to_datetime(data['inspection_date'], dayfirst=True, errors='coerce')
-    data['arrival_date'] = pd.to_datetime(data['arrival_date'], dayfirst=True, errors='coerce')
+    st.write("After dropping unnecessary columns, here are the remaining columns:")
+    st.write(data.columns)
+    
+    # Convert date columns to datetime format
+    for col in ['inspection date', 'arrival date']:
+        data[col] = pd.to_datetime(data[col], dayfirst=True, errors='coerce')
+        if data[col].isna().sum() > 0:
+            st.warning(f"Some dates in the column '{col}' could not be converted and are set to NaT.")
 
     def random_date(arrival_date):
         if pd.isna(arrival_date):
@@ -44,13 +50,13 @@ def preprocess(data):
         days_to_add = np.random.randint(2, 21)
         return arrival_date + pd.DateOffset(days=days_to_add)
 
-    data['inspection_date'] = data.apply(
-        lambda row: random_date(row['arrival_date']) if pd.isna(row['inspection_date']) else row['inspection_date'],
+    data['inspection date'] = data.apply(
+        lambda row: random_date(row['arrival date']) if pd.isna(row['inspection date']) else row['inspection date'],
         axis=1
     )
 
-    data['custom_fees'] = data['custom_fees'].replace('[^\d.]', '', regex=True)
-    data['custom_fees'] = pd.to_numeric(data['custom_fees'], errors='coerce')
+    data['custom fees'] = data['custom fees'].replace('[^\d.]', '', regex=True)
+    data['custom fees'] = pd.to_numeric(data['custom fees'], errors='coerce')
 
     def determine_exchange_rate(arrival_date):
         if pd.Timestamp('2018-01-01') <= arrival_date < pd.Timestamp('2022-12-01'):
@@ -62,22 +68,22 @@ def preprocess(data):
         else:
             return None
 
-    data['exchange_rate'] = data['arrival_date'].apply(determine_exchange_rate)
-    data['custom_fees_usd'] = data.apply(lambda x: x['custom_fees'] / x['exchange_rate'] if pd.notna(x['exchange_rate']) else np.nan, axis=1)
+    data['exchange_rate'] = data['arrival date'].apply(determine_exchange_rate)
+    data['custom_fees_usd'] = data.apply(lambda x: x['custom fees'] / x['exchange_rate'] if pd.notna(x['exchange_rate']) else np.nan, axis=1)
 
-    data['delay_days'] = (data['inspection_date'] - data['arrival_date']).dt.days
+    data['delay_days'] = (data['inspection date'] - data['arrival date']).dt.days
     data = data[data['delay_days'] >= 0]
 
-    data['arrival_weekday'] = data['arrival_date'].dt.weekday
-    data['arrival_month'] = data['arrival_date'].dt.month
+    data['arrival_weekday'] = data['arrival date'].dt.weekday
+    data['arrival_month'] = data['arrival date'].dt.month
     data['arrival_weekday_sin'] = np.sin(2 * np.pi * data['arrival_weekday'] / 7)
     data['arrival_weekday_cos'] = np.cos(2 * np.pi * data['arrival_weekday'] / 7)
     data['arrival_month_sin'] = np.sin(2 * np.pi * data['arrival_month'] / 12)
     data['arrival_month_cos'] = np.cos(2 * np.pi * data['arrival_month'] / 12)
 
-    X_delay = data[['arrival_weekday_sin', 'arrival_weekday_cos', 'arrival_month_sin', 'arrival_month_cos', 'country_of_origin', 'container_type']]
-    encoded_features = pd.get_dummies(X_delay[['container_type', 'country_of_origin']])
-    X_delay = pd.concat([X_delay.drop(['container_type', 'country_of_origin'], axis=1), encoded_features], axis=1)
+    X_delay = data[['arrival_weekday_sin', 'arrival_weekday_cos', 'arrival_month_sin', 'arrival_month_cos', 'country of origin', 'container type']]
+    encoded_features = pd.get_dummies(X_delay[['container type', 'country of origin']])
+    X_delay = pd.concat([X_delay.drop(['container type', 'country of origin'], axis=1), encoded_features], axis=1)
 
     return X_delay
 
@@ -100,15 +106,15 @@ if uploaded_file is not None:
         st.write(data.head())
 
         # Check for necessary columns
-        required_columns = ['inspection_date', 'arrival_date']
+        required_columns = ['inspection date', 'arrival date']
         missing_columns = [col for col in required_columns if col not in data.columns]
         
         if missing_columns:
             st.error(f"The uploaded file is missing the following required columns: {', '.join(missing_columns)}")
         else:
             # Ensure the necessary columns are of the correct type
-            data['inspection_date'] = pd.to_datetime(data['inspection_date'], dayfirst=True, errors='coerce')
-            data['arrival_date'] = pd.to_datetime(data['arrival_date'], dayfirst=True, errors='coerce')
+            data['inspection date'] = pd.to_datetime(data['inspection date'], dayfirst=True, errors='coerce')
+            data['arrival date'] = pd.to_datetime(data['arrival date'], dayfirst=True, errors='coerce')
 
             X_delay = preprocess(data)
             
