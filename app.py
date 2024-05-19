@@ -28,7 +28,7 @@ def preprocess(data):
     if 'inspection_date' not in data.columns or 'arrival_date' not in data.columns:
         st.error("The uploaded file must contain 'inspection_date' and 'arrival_date' columns.")
         return None
-    
+
     # Drop unnecessary columns early
     if 'container number' in data.columns:
         data = data.drop(columns=['container number'])
@@ -96,11 +96,16 @@ uploaded_file = st.file_uploader("Choose an Excel file with your import data", t
 
 if uploaded_file is not None:
     try:
-        data = pd.read_excel(uploaded_file)
+        # Load the data, ensuring that all columns are read as strings initially
+        data = pd.read_excel(uploaded_file, dtype=str)
         st.write("Data Uploaded Successfully!")
 
         st.write("Here is a preview of your data:")
         st.write(data.head())
+
+        # Ensure the necessary columns are of the correct type
+        data['inspection_date'] = pd.to_datetime(data['inspection_date'], dayfirst=True, errors='coerce')
+        data['arrival_date'] = pd.to_datetime(data['arrival_date'], dayfirst=True, errors='coerce')
 
         X_delay = preprocess(data)
         
