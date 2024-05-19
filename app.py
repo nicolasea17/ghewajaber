@@ -146,7 +146,7 @@ def preprocess(data, expected_features):
     st.write("Final X_delay shape: ", X_delay.shape)
     st.write(X_delay.head())
 
-    return X_delay, y_delay, data2
+    return X_delay, data2
 
 # Streamlit interface
 st.title('Import Delay Prediction')
