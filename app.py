@@ -30,7 +30,14 @@ def preprocess(data):
         return None
     
     # Drop unnecessary columns early
-    data = data.drop(columns=['container number', 'x', 'color code', 'container'], errors='ignore')
+    if 'container number' in data.columns:
+        data = data.drop(columns=['container number'])
+    if 'x' in data.columns:
+        data = data.drop(columns=['x'])
+    if 'color code' in data.columns:
+        data = data.drop(columns=['color code'])
+    if 'container' in data.columns:
+        data = data.drop(columns=['container'])
 
     data['inspection_date'] = pd.to_datetime(data['inspection_date'], dayfirst=True, errors='coerce')
     data['arrival_date'] = pd.to_datetime(data['arrival_date'], dayfirst=True, errors='coerce')
