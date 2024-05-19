@@ -2,12 +2,28 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
+import requests
+import os
+
+# Function to download the model from Google Drive
+def download_model(url, model_path):
+    if not os.path.exists(model_path):
+        response = requests.get(url)
+        with open(model_path, 'wb') as f:
+            f.write(response.content)
+
+# Google Drive link
+model_url = 'YOUR_GOOGLE_DRIVE_LINK'  # Replace with your shareable link
+model_path = 'random_forest_model.joblib'
+
+# Download the model
+download_model(model_url, model_path)
 
 # Load the model and scaler
-model = joblib.load('random_forest_model.joblib')
+model = joblib.load(model_path)
 scaler = joblib.load('scaler.joblib')
 
-# Function to preprocess the data
+# The rest of your Streamlit app code...
 def preprocess(data):
     data['inspection_date'] = pd.to_datetime(data['inspection_date'], dayfirst=True, errors='coerce')
     data['arrival_date'] = pd.to_datetime(data['arrival_date'], dayfirst=True, errors='coerce')
@@ -89,4 +105,3 @@ if uploaded_file is not None:
         st.error(f"An error occurred: {e}")
 else:
     st.info("Please upload an Excel file to proceed.")
-
